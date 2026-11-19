@@ -249,13 +249,6 @@ def cb_none(key, oks):
     for si, _ in enumerate(oks):
         st.session_state[f"cb_{key}_{si}"] = False
 
-
-def cb_match(key, names, oks):
-    q = norm(st.session_state.get(f"q_{key}", ""))
-    for si, (n, ok) in enumerate(zip(names, oks)):
-        st.session_state[f"cb_{key}_{si}"] = bool(ok and q in norm(n))
-
-
 def cb_remove(key):
     st.session_state.removed.add(key)
 
@@ -318,13 +311,10 @@ def render():
         n_on = sum(1 for si, ok in enumerate(oks) if ok and ss.get(f"cb_{key}_{si}"))
         with st.container(border=True):
             st.markdown(f"**{F['name']}** — {n_on} dari {len(sheets)} tab dipilih")
-            c0, c1, c2, c3, c4 = st.columns([3, 1.3, 1, 1, 1])
-            c0.text_input("filter nama tab", key=f"q_{key}", placeholder="filter nama tab, mis. JUNE",
-                          label_visibility="collapsed")
-            c1.button("Pilih yang cocok", key=f"m_{key}", on_click=cb_match, args=(key, names, oks))
-            c2.button("Pilih semua", key=f"a_{key}", on_click=cb_all, args=(key, oks))
-            c3.button("Kosongkan", key=f"n_{key}", on_click=cb_none, args=(key, oks))
-            c4.button("Hapus file", key=f"r_{key}", on_click=cb_remove, args=(key,))
+            c1, c2, c3 = st.columns(3)
+            c1.button("Pilih semua", key=f"a_{key}", on_click=cb_all, args=(key, oks))
+            c2.button("Kosongkan", key=f"n_{key}", on_click=cb_none, args=(key, oks))
+            c3.button("Hapus file", key=f"r_{key}", on_click=cb_remove, args=(key,))
             ncol = 5
             cols = st.columns(ncol)
             for si, s in enumerate(sheets):
