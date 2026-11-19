@@ -289,8 +289,7 @@ def render():
     st.header("🚢 Converter Noon Report")
     st.write("Upload file Excel, lalu pilih tab mana saja yang mau dikonversi.")
 
-    uploaded = st.file_uploader("",
-                                type=["xlsx", "xlsm"], accept_multiple_files=True,
+    uploaded = st.file_uploader(type=["xlsx", "xlsm"], accept_multiple_files=True,
                                 key=f"uploader_{ss.uploader_n}",
                                 help="Satu tab = satu baris. Layout template boleh berbeda antar kapal.")
 
@@ -352,7 +351,7 @@ def render():
                              "disp": display(s["vals"], s["hemi"], opt_zero, opt_hemi), "notes": s["notes"]})
 
     if not rows:
-        st.info("Belum ada tab yang dipilih." if files else "Belum ada file.")
+        st.info("Belum ada tab yang dipilih" if files else "Belum ada file")
         return
 
     df = pd.DataFrame([[False, f"{r['sheet']}  ({r['name']})"] + [str(v) for v in r["disp"]] for r in rows],
