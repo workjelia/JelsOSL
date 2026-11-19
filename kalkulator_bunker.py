@@ -1,0 +1,225 @@
+import io
+
+import numpy as np
+import pandas as pd
+import streamlit as st
+
+
+def render():
+    """Kalkulator Bunker (isi sama seperti kode aslimu, hanya dibungkus fungsi)."""
+    st.title("Kalkulator Bunker")
+
+    # Pilihan Kapal
+    pilihan_kapal = st.selectbox(
+        "Pilih Vessel:",
+        [
+            "MPMT XII / MPMT XV",
+            "FALCON 19",
+            "SEAGULL 201",
+            "SEAGULL 202",
+            "SEAGULL 351",
+        ],
+    )
+
+    # Pilihan Metode Input
+    metode_input = st.radio(
+        "Pilih Metode Input Data:",
+        ["Upload File Excel (.xlsx)", "Input Manual (Tabel Excel-like)"],
+    )
+
+    df_clean = None
+
+    if metode_input == "Upload File Excel (.xlsx)":
+        uploaded_file = st.file_uploader("Upload File (NO SUMMARY)", type=["xlsx"])
+
+        if uploaded_file is not None:
+            try:
+                df = pd.read_excel(uploaded_file, header=None)
+                if pilihan_kapal == "FALCON 19":
+                    start_row = 4
+                else:
+                    start_row = 5
+                df_data = df.iloc[start_row:].copy()
+
+                df_clean = pd.DataFrame()
+                df_clean["Datetime"] = pd.to_datetime(
+                    df_data.iloc[:, 2].astype(str) + " " + df_data.iloc[:, 3].astype(str),
+                    errors="coerce",
+                )
+
+                # Penanganan khusus Falcon 19 (1 RPM) vs Kapal Lainnya (2 RPM)
+                if pilihan_kapal == "FALCON 19":
+                    df_clean["RPM"] = pd.to_numeric(df_data.iloc[:, 6], errors="coerce")
+                else:
+                    df_clean["RPM_Port"] = pd.to_numeric(df_data.iloc[:, 5], errors="coerce")
+                    df_clean["RPM_Stbd"] = pd.to_numeric(df_data.iloc[:, 6], errors="coerce")
+
+                df_clean = df_clean.dropna(subset=["Datetime"]).reset_index(drop=True)
+            except Exception as e:
+                st.error(f"Terjadi kesalahan saat memproses file: {e}")
+
+    else:
+        st.subheader("Input Data Manual (Waktu & RPM)")
+        st.info(
+            "Silakan isi tanggal/waktu (format: YYYY-MM-DD HH:MM:SS) serta nilai RPM"
+            " pada tabel di bawah ini:"
+        )
+
+        # Template default untuk input manual berdasarkan pilihan kapal
+        if pilihan_kapal == "FALCON 19":
+            default_data = pd.DataFrame({
+                "Datetime": [
+                    pd.Timestamp("2000-12-01 00:00:00"),
+                    pd.Timestamp("2000-12-01 00:00:00"),
+                ],
+                "RPM": [0, 0],
+            })
+        else:
+            default_data = pd.DataFrame({
+                "Datetime": [
+                    pd.Timestamp("2000-12-01 00:00:00"),
+                    pd.Timestamp("2000-12-01 00:00:00"),
+                ],
+                "RPM_Port": [0, 0],
+                "RPM_Stbd": [0, 0],
+            })
+
+        edited_df = st.data_editor(
+            default_data, num_rows="dynamic", use_container_width=True
+        )
+
+        if not edited_df.empty:
+            df_clean = edited_df.copy()
+            df_clean["Datetime"] = pd.to_datetime(df_clean["Datetime"], errors="coerce")
+            if pilihan_kapal == "FALCON 19":
+                df_clean["RPM"] = pd.to_numeric(df_clean["RPM"], errors="coerce")
+            else:
+                df_clean["RPM_Port"] = pd.to_numeric(df_clean["RPM_Port"], errors="coerce")
+                df_clean["RPM_Stbd"] = pd.to_numeric(df_clean["RPM_Stbd"], errors="coerce")
+
+    # Proses Perhitungan jika data sudah tersedia
+    if df_clean is not None and not df_clean.empty:
+        if st.button("Jalankan Perhitungan"):
+            try:
+                # Hitung Durasi (dalam hari) antar baris waktu
+                df_clean["Duration_Days"] = (
+                    df_clean["Datetime"].diff().dt.total_seconds() / 86400
+                )
+                df_clean.loc[0, "Duration_Days"] = 0.0
+
+                steaming_time = df_clean["Duration_Days"].sum()
+
+                # Hitung total durasi waktu (Waktu Max - Waktu Min dalam jam)
+                max_time = df_clean["Datetime"].max()
+                min_time = df_clean["Datetime"].min()
+                total_hours = (max_time - min_time).total_seconds() / 3600
+
+                # Hitung ME / AE berdasarkan jenis kapal
+                if pilihan_kapal == "MPMT XII / MPMT XV":
+                    c1, c2 = 0.334336, 3.92556
+                    df_clean["ME"] = (
+                        (c1 / 2)
+                        * (
+                            np.exp(c2 * (df_clean["RPM_Port"].shift(1) / 1000))
+                            + np.exp(c2 * (df_clean["RPM_Stbd"].shift(1) / 1000))
+                        )
+                        * df_clean["Duration_Days"]
+                    )
+                    total_me = round(df_clean["ME"].sum(), 3)
+                    total_ae = round(steaming_time * 0.575, 3)
+                    total_me_ae = round(total_me + total_ae, 3)
+
+                elif pilihan_kapal == "SEAGULL 201":
+                    c1, c2 = 0.26384, 2.028009
+                    df_clean["ME_DAN_AE"] = (
+                        (c1 / 2)
+                        * (
+                            np.exp(c2 * (df_clean["RPM_Port"].shift(1) / 1000))
+                            + np.exp(c2 * (df_clean["RPM_Stbd"].shift(1) / 1000))
+                        )
+                        * df_clean["Duration_Days"]
+                    )
+                    total_me_ae = round(df_clean["ME_DAN_AE"].sum(), 3)
+                    total_me = None
+                    total_ae = None
+
+                elif pilihan_kapal == "SEAGULL 202":
+                    c1, c2 = 0.609554, 1.223332
+                    df_clean["ME"] = (
+                        (c1 / 2)
+                        * (
+                            np.exp(c2 * (df_clean["RPM_Port"].shift(1) / 1000))
+                            + np.exp(c2 * (df_clean["RPM_Stbd"].shift(1) / 1000))
+                        )
+                        * df_clean["Duration_Days"]
+                    )
+                    total_me = round(df_clean["ME"].sum(), 3)
+                    total_ae = round(steaming_time * 0.29, 3)
+                    total_me_ae = round(total_me + total_ae, 3)
+
+                elif pilihan_kapal == "SEAGULL 351":
+                    c1, c2 = 0.222352, 2.648732
+                    df_clean["ME"] = (
+                        (c1 / 2)
+                        * (
+                            np.exp(c2 * (df_clean["RPM_Port"].shift(1) / 1000))
+                            + np.exp(c2 * (df_clean["RPM_Stbd"].shift(1) / 1000))
+                        )
+                        * df_clean["Duration_Days"]
+                    )
+                    total_me = round(df_clean["ME"].sum(), 3)
+                    total_ae = round(steaming_time * 0.29, 3)
+                    total_me_ae = round(total_me + total_ae, 3)
+
+                elif pilihan_kapal == "FALCON 19":
+                    c3, c4 = 0.229405, 12.113255
+                    df_clean["ME"] = (
+                        c3
+                        * np.exp(c4 * (df_clean["RPM"].shift(1) / 1000))
+                        * df_clean["Duration_Days"]
+                    )
+                    total_me = round(df_clean["ME"].sum(), 3)
+                    total_ae = round(steaming_time * 0.7, 3)
+                    total_me_ae = round(total_me + total_ae, 3)
+
+                # --- PERHITUNGAN LITER PER HOUR ---
+                # Conversion MT to Liter = (MT / 0.8355) * 1000
+                if total_hours > 0:
+                    total_liter = (total_me_ae / 0.8355) * 1000
+                    liter_per_hour = round(total_liter / total_hours, 3)
+                else:
+                    liter_per_hour = 0.0
+
+                # --- TAMPILAN HASIL ---
+                if total_me is not None and total_ae is not None:
+                    st.success(
+                        f"**Steaming Time:** {steaming_time:.3f} Hari | "
+                        f"**Total ME:** {total_me:.3f} MT | "
+                        f"**Total AE:** {total_ae:.3f} MT | "
+                        f"**Total ME + AE:** {total_me_ae:.3f} MT | "
+                        f"**Pemakaian:** {liter_per_hour:.3f} Liter/Jam"
+                    )
+                else:
+                    st.success(
+                        f"**Steaming Time:** {steaming_time:.3f} Hari | "
+                        f"**Total ME + AE:** {total_me_ae:.3f} MT | "
+                        f"**Pemakaian:** {liter_per_hour:.3f} Liter/Jam"
+                    )
+
+                st.subheader("Detail Tabel Hasil Perhitungan")
+                st.dataframe(df_clean)
+
+                # Perbaikan Tombol Download Excel menggunakan io.BytesIO
+                output = io.BytesIO()
+                with pd.ExcelWriter(output, engine="openpyxl") as writer:
+                    df_clean.to_excel(writer, index=False, sheet_name="Hasil Kalkulasi")
+                xlsx_result = output.getvalue()
+
+                st.download_button(
+                    label="Download Hasil Perhitungan (.xlsx)",
+                    data=xlsx_result,
+                    file_name="hasil_bunker_calculator.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                )
+            except Exception as e:
+                st.error(f"Terjadi kesalahan saat menghitung: {e}")
