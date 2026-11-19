@@ -277,7 +277,7 @@ def render():
     ss.setdefault("uploader_n", 0)
     # ✕ pada baris tabel -> hilangkan centang tab (diproses sebelum widget dibuat)
 
-    st.header("Converter Noon Report")
+    st.header("**Converter Noon Report**")
 
     uploaded = st.file_uploader("Upload file Excel, lalu pilih tab mana saja yang mau dikonversi.",
                                 type=["xlsx", "xlsm"], accept_multiple_files=True,
