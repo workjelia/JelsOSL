@@ -356,7 +356,7 @@ def render():
     st.caption("Klik ikon salin di pojok kanan atas kotak, lalu tempel ke Excel.")
     st.code(tsv(data_rows, opt_head), language=None)
 
-    st.subheader("Salin Satu Baris (u/ <1 Baris)")
+    st.subheader("Salin Satu Baris (u/ >1 Baris)")
     idx = st.selectbox("Pilih baris", range(len(rows)), format_func=lambda i: f"{rows[i]['sheet']} ({rows[i]['name']})")
     st.code(tsv([data_rows[idx]], opt_head), language=None)
 
