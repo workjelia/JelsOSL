@@ -313,7 +313,7 @@ def render():
             st.markdown(f"**{F['name']}** — {n_on} dari {len(sheets)} tab dipilih")
             c1, c2, c3 = st.columns(3)
             c1.button("Pilih semua", key=f"a_{key}", on_click=cb_all, args=(key, oks))
-            c2.button("Kosongkan", key=f"n_{key}", on_click=cb_none, args=(key, oks))
+            c2.button("Reset pilihan", key=f"n_{key}", on_click=cb_none, args=(key, oks))
             c3.button("Hapus file", key=f"r_{key}", on_click=cb_remove, args=(key,))
             ncol = 5
             cols = st.columns(ncol)
