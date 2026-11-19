@@ -287,9 +287,7 @@ def render():
         ss[k] = False
 
     st.header("🚢 Converter Noon Report")
-    st.write("Upload file Excel, lalu pilih tab mana saja yang mau dikonversi (misalnya 30 tab harian dalam sebulan). "
-             "Setiap tab yang dipilih jadi satu baris seperti tab **CONVERTER**. Bisa banyak file sekaligus. "
-             "Semua diproses di sesi Streamlit kamu.")
+    st.write("Upload file Excel, lalu pilih tab mana saja yang mau dikonversi.")
 
     uploaded = st.file_uploader("Tarik file .xlsx ke sini atau klik untuk memilih",
                                 type=["xlsx", "xlsm"], accept_multiple_files=True,
