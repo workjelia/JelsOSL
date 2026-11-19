@@ -283,8 +283,6 @@ def render():
     ss.setdefault("removed", set())
     ss.setdefault("uploader_n", 0)
     # ✕ pada baris tabel -> hilangkan centang tab (diproses sebelum widget dibuat)
-    for k in ss.pop("_uncheck", []):
-        ss[k] = False
 
     st.header("🚢 Converter Noon Report")
 
@@ -354,21 +352,7 @@ def render():
         st.info("Belum ada tab yang dipilih" if files else "Belum ada file")
         return
 
-    df = pd.DataFrame([[False, f"{r['sheet']}  ({r['name']})"] + [str(v) for v in r["disp"]] for r in rows],
-                      columns=["✕", "File / Tab"] + COLNAMES)
-    sig = hashlib.md5(repr(([r["cb"] for r in rows], opt_zero, opt_hemi)).encode()).hexdigest()[:10]
-    edited = st.data_editor(
-        df, key=f"editor_{sig}", hide_index=True, use_container_width=True, num_rows="fixed",
-        disabled=["File / Tab"],
-        column_config={"✕": st.column_config.CheckboxColumn("✕", help="Lepas tab ini dari pilihan", width="small")},
-    )
-
-    removed = [rows[i]["cb"] for i in range(len(rows)) if bool(edited.iloc[i]["✕"])]
-    if removed:
-        ss["_uncheck"] = removed
-        st.rerun()
-
-    # ---- catatan
+# ---- catatan
     bad = [r for r in rows if r["notes"]]
     if bad:
         for r in bad:
@@ -377,7 +361,7 @@ def render():
         st.success(f"{len(rows)} baris, semua kolom terbaca ✓")
 
     # ---- salin
-    data_rows = edited[COLNAMES].values.tolist()
+    data_rows = [r["disp"] for r in rows]
     st.subheader("Salin semua baris")
     st.caption("Klik ikon salin di pojok kanan atas kotak, lalu tempel (Ctrl+V) ke Excel.")
     st.code(tsv(data_rows, opt_head), language=None)
@@ -385,8 +369,6 @@ def render():
     st.subheader("Salin satu baris")
     idx = st.selectbox("Pilih baris", range(len(rows)), format_func=lambda i: f"{rows[i]['sheet']} ({rows[i]['name']})")
     st.code(tsv([data_rows[idx]], opt_head), language=None)
-
-    st.caption("Tips: klik sel di tabel untuk mengoreksi nilai, lalu salin dan tempel (Ctrl+V) ke Excel.")
 
 
 if __name__ == "__main__":  # bisa juga dijalankan sendiri
