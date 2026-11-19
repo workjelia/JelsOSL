@@ -289,7 +289,7 @@ def render():
     st.header("🚢 Converter Noon Report")
     st.write("Upload file Excel, lalu pilih tab mana saja yang mau dikonversi.")
 
-    uploaded = st.file_uploader("Upload file",
+    uploaded = st.file_uploader("",
                                 type=["xlsx", "xlsm"], accept_multiple_files=True,
                                 key=f"uploader_{ss.uploader_n}",
                                 help="Satu tab = satu baris. Layout template boleh berbeda antar kapal.")
@@ -339,7 +339,7 @@ def render():
     # ---- opsi
     o1, o2, o3, o4 = st.columns([1, 1.4, 1.6, 1])
     opt_head = o1.checkbox("Sertakan header", value=False)
-    opt_zero = o2.checkbox("NA jadi 0", value=True)
+    opt_zero = o2.checkbox("NA jadi 0", value=False)
     opt_hemi = o3.checkbox("Tambahkan N/S/E/W (Latitude/Longitude)", value=False)
     o4.button("Reset", key="clear_all", on_click=cb_clear)
 
