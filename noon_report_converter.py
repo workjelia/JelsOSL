@@ -287,9 +287,8 @@ def render():
         ss[k] = False
 
     st.header("🚢 Converter Noon Report")
-    st.write("Upload file Excel, lalu pilih tab mana saja yang mau dikonversi.")
 
-    uploaded = st.file_uploader("",
+    uploaded = st.file_uploader("Upload file Excel, lalu pilih tab mana saja yang mau dikonversi.",
                                 type=["xlsx", "xlsm"], accept_multiple_files=True,
                                 key=f"uploader_{ss.uploader_n}",
                                 help="Satu tab = satu baris. Layout template boleh berbeda antar kapal.")
